@@ -4,13 +4,28 @@ import { useProductStore } from "../stores/useProductStore";
 import FeaturedProducts from "../components/FeaturedProducts";
 
 const categories = [
-	{ href: "/jeans", name: "Jeans", imageUrl: "/jeans.jpg" },
-	{ href: "/t-shirts", name: "T-shirts", imageUrl: "/tshirts.jpg" },
-	{ href: "/shoes", name: "Shoes", imageUrl: "/shoes.jpg" },
-	{ href: "/glasses", name: "Glasses", imageUrl: "/glasses.png" },
-	{ href: "/jackets", name: "Jackets", imageUrl: "/jackets.jpg" },
-	{ href: "/suits", name: "Suits", imageUrl: "/suits.jpg" },
-	{ href: "/bags", name: "Bags", imageUrl: "/bags.jpg" },
+	{
+		href: "/electronics",
+		name: "Electronics",
+		imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80",
+	},
+	{
+		href: "/home",
+		name: "Home & Furniture",
+		imageUrl: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80",
+	},
+	{
+		href: "/beauty",
+		name: "Beauty & Lifestyle",
+		imageUrl: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80",
+	},
+	{ href: "/shoes", name: "Footwear & Shoes", imageUrl: "/shoes.jpg" },
+	{ href: "/jeans", name: "Jeans & Denim", imageUrl: "/jeans.jpg" },
+	{ href: "/t-shirts", name: "T-shirts & Tops", imageUrl: "/tshirts.jpg" },
+	{ href: "/jackets", name: "Jackets & Outerwear", imageUrl: "/jackets.jpg" },
+	{ href: "/suits", name: "Suits & Tailoring", imageUrl: "/suits.jpg" },
+	{ href: "/bags", name: "Bags & Backpacks", imageUrl: "/bags.jpg" },
+	{ href: "/glasses", name: "Glasses & Eyewear", imageUrl: "/glasses.png" },
 ];
 
 const HomePage = () => {

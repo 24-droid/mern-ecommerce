@@ -4,10 +4,75 @@ import Product from "../models/product.model.js";
 
 export const getAllProducts = async (req, res) => {
 	try {
-		const products = await Product.find({}); // find all products
-		res.json({ products });
+		const { category, search, sort, featured } = req.query;
+		let query = {};
+
+		if (category && category !== "all") {
+			const catLower = category.toLowerCase();
+			if (catLower === "shoes" || catLower === "footwear") {
+				query.category = { $in: ["shoes", "footwear"] };
+			} else if (["fashion", "clothing", "t-shirts", "jeans", "jackets", "suits"].includes(catLower)) {
+				query.category = { $in: ["fashion", "clothing", "t-shirts", "jeans", "jackets", "suits", catLower] };
+			} else if (["accessories", "bags", "glasses"].includes(catLower)) {
+				query.category = { $in: ["accessories", "bags", "glasses", catLower] };
+			} else if (["home", "furniture", "home and furniture"].includes(catLower)) {
+				query.category = { $in: ["home", "furniture", "home-furniture", catLower] };
+			} else if (["beauty", "lifestyle", "beauty and lifestyle"].includes(catLower)) {
+				query.category = { $in: ["beauty", "lifestyle", "beauty-lifestyle", catLower] };
+			} else {
+				query.category = catLower;
+			}
+		}
+
+		if (search) {
+			query.$or = [
+				{ name: { $regex: search, $options: "i" } },
+				{ description: { $regex: search, $options: "i" } },
+				{ brand: { $regex: search, $options: "i" } },
+				{ category: { $regex: search, $options: "i" } },
+			];
+		}
+
+		if (featured === "true") {
+			query.isFeatured = true;
+		}
+
+		let sortOption = { createdAt: -1 };
+		if (sort === "price-asc") sortOption = { price: 1 };
+		else if (sort === "price-desc") sortOption = { price: -1 };
+		else if (sort === "rating") sortOption = { rating: -1 };
+		else if (sort === "popular" || sort === "featured") sortOption = { isFeatured: -1, rating: -1 };
+
+		const products = await Product.find(query).sort(sortOption);
+		res.json({ products, total: products.length });
 	} catch (error) {
 		console.log("Error in getAllProducts controller", error.message);
+		res.status(500).json({ message: "Server error", error: error.message });
+	}
+};
+
+export const getProductById = async (req, res) => {
+	try {
+		const { id } = req.params;
+		let product = null;
+
+		if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
+			product = await Product.findById(id);
+		} else if (id) {
+			product = await Product.findOne({
+				$or: [
+					{ name: { $regex: new RegExp(`^${id}$`, "i") } },
+					{ name: { $regex: new RegExp(id.replace(/-/g, " "), "i") } },
+				],
+			});
+		}
+
+		if (!product) {
+			return res.status(404).json({ message: "Product not found" });
+		}
+		res.json(product);
+	} catch (error) {
+		console.log("Error in getProductById controller", error.message);
 		res.status(500).json({ message: "Server error", error: error.message });
 	}
 };
@@ -104,6 +169,12 @@ export const getRecommendedProducts = async (req, res) => {
 					description: 1,
 					image: 1,
 					price: 1,
+					discountPrice: 1,
+					category: 1,
+					brand: 1,
+					rating: 1,
+					numReviews: 1,
+					isFeatured: 1,
 				},
 			},
 		]);
@@ -118,7 +189,20 @@ export const getRecommendedProducts = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
 	const { category } = req.params;
 	try {
-		const products = await Product.find({ category });
+		const catLower = category.toLowerCase();
+		let filter = { category: catLower };
+		if (catLower === "shoes" || catLower === "footwear") {
+			filter = { category: { $in: ["shoes", "footwear"] } };
+		} else if (["fashion", "clothing", "t-shirts", "jeans", "jackets", "suits"].includes(catLower)) {
+			filter = { category: { $in: ["fashion", "clothing", "t-shirts", "jeans", "jackets", "suits", catLower] } };
+		} else if (["accessories", "bags", "glasses"].includes(catLower)) {
+			filter = { category: { $in: ["accessories", "bags", "glasses", catLower] } };
+		} else if (["home", "furniture", "home and furniture", "home-furniture"].includes(catLower)) {
+			filter = { category: { $in: ["home", "furniture", "home-furniture", catLower] } };
+		} else if (["beauty", "lifestyle", "beauty and lifestyle", "beauty-lifestyle"].includes(catLower)) {
+			filter = { category: { $in: ["beauty", "lifestyle", "beauty-lifestyle", catLower] } };
+		}
+		const products = await Product.find(filter);
 		res.json({ products });
 	} catch (error) {
 		console.log("Error in getProductsByCategory controller", error.message);

@@ -12,17 +12,23 @@ export const createCheckoutSession = async (req, res) => {
 
 		let totalAmount = 0;
 
+		const isValidUrl = (url) => typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"));
+
 		const lineItems = products.map((product) => {
 			const amount = Math.round(product.price * 100); // stripe wants u to send in the format of cents
 			totalAmount += amount * product.quantity;
 
+			const product_data = {
+				name: product.name,
+			};
+			if (isValidUrl(product.image)) {
+				product_data.images = [product.image];
+			}
+
 			return {
 				price_data: {
 					currency: "usd",
-					product_data: {
-						name: product.name,
-						images: [product.image],
-					},
+					product_data,
 					unit_amount: amount,
 				},
 				quantity: product.quantity || 1,
@@ -66,7 +72,7 @@ export const createCheckoutSession = async (req, res) => {
 		if (totalAmount >= 20000) {
 			await createNewCoupon(req.user._id);
 		}
-		res.status(200).json({ id: session.id, totalAmount: totalAmount / 100 });
+		res.status(200).json({ id: session.id, totalAmount: totalAmount / 100, url: session.url });
 	} catch (error) {
 		console.error("Error processing checkout:", error);
 		res.status(500).json({ message: "Error processing checkout", error: error.message });
