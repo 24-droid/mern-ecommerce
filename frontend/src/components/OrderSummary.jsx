@@ -1,16 +1,14 @@
 import { motion } from "framer-motion";
 import { useCartStore } from "../stores/useCartStore";
 import { Link } from "react-router-dom";
-import { MoveRight } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
+import { MoveRight, Loader } from "lucide-react";
 import axios from "../lib/axios";
-
-const stripePromise = loadStripe(
-	"pk_test_51KZYccCoOZF2UhtOwdXQl3vcizup20zqKqT9hVUIsVzsdBrhqbUI2fE0ZdEVLdZfeHjeyFXtqaNsyCJCmZWnjNZa00PzMAjlcL"
-);
+import toast from "react-hot-toast";
+import { useState } from "react";
 
 const OrderSummary = () => {
 	const { total, subtotal, coupon, isCouponApplied, cart } = useCartStore();
+	const [isProcessing, setIsProcessing] = useState(false);
 
 	const savings = subtotal - total;
 	const formattedSubtotal = subtotal.toFixed(2);
@@ -18,19 +16,29 @@ const OrderSummary = () => {
 	const formattedSavings = savings.toFixed(2);
 
 	const handlePayment = async () => {
-		const stripe = await stripePromise;
-		const res = await axios.post("/payments/create-checkout-session", {
-			products: cart,
-			couponCode: coupon ? coupon.code : null,
-		});
+		if (cart.length === 0) {
+			toast.error("Your cart is empty");
+			return;
+		}
 
-		const session = res.data;
-		const result = await stripe.redirectToCheckout({
-			sessionId: session.id,
-		});
+		setIsProcessing(true);
+		try {
+			const res = await axios.post("/payments/create-checkout-session", {
+				products: cart,
+				couponCode: coupon ? coupon.code : null,
+			});
 
-		if (result.error) {
-			console.error("Error:", result.error);
+			const session = res.data;
+			if (session.url) {
+				// Direct redirect to Stripe Hosted Checkout
+				window.location.href = session.url;
+				return;
+			}
+			throw new Error("No checkout URL returned from server");
+		} catch (error) {
+			console.error("Payment error:", error);
+			toast.error(error.response?.data?.message || error.message || "Failed to initiate checkout");
+			setIsProcessing(false);
 		}
 	};
 
@@ -70,12 +78,20 @@ const OrderSummary = () => {
 				</div>
 
 				<motion.button
-					className='flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300'
-					whileHover={{ scale: 1.05 }}
-					whileTap={{ scale: 0.95 }}
+					className='flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-4 focus:ring-emerald-300 transition-colors'
+					whileHover={{ scale: isProcessing ? 1 : 1.02 }}
+					whileTap={{ scale: isProcessing ? 1 : 0.98 }}
 					onClick={handlePayment}
+					disabled={isProcessing}
 				>
-					Proceed to Checkout
+					{isProcessing ? (
+						<>
+							<Loader size={18} className='animate-spin mr-2' />
+							Connecting to Stripe...
+						</>
+					) : (
+						"Proceed to Checkout"
+					)}
 				</motion.button>
 
 				<div className='flex items-center justify-center gap-2'>
